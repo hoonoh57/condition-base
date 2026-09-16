@@ -61,14 +61,14 @@ export async function runSqlFiles(pool, files, { dryRun = false, log = console.l
   } finally { conn.release(); }
 }
 
-export async function sqlCommand(role, relativeFiles) {
+export async function sqlCommand(relativeFiles) {
   const dryRun = process.argv.includes('--dry-run');
   let db;
   try {
     if (!dryRun) db = await import('../server/db.mjs');
-    await runSqlFiles(db?.[role], relativeFiles.map(f => new URL(f, import.meta.url)), { dryRun });
+    await runSqlFiles(db?.dbPool, relativeFiles.map(f => new URL(f, import.meta.url)), { dryRun });
   } catch (error) {
     console.error(error.message);
     process.exitCode = 1;
-  } finally { if (db) await db.closePools(); }
+  } finally { if (db) await db.closePool(); }
 }

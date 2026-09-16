@@ -2,16 +2,14 @@ import mysql from 'mysql2/promise';
 import { config } from './config.mjs';
 import { schemaSql } from './schema.mjs';
 
-// Optional roles are validated when used, so P0 needs only reader credentials.
-function pool(role) {
+// One account and one lazy pool for setup, reads, builds and research writes.
+function pool() {
   let instance;
   function get() {
     if (instance) return instance;
-    const r = config.db.roles[role];
-    if (!r?.user) throw new Error(`[db] role 미설정: ${role}`);
     instance = mysql.createPool({
       host: config.db.host, port: config.db.port,
-      user: r.user, password: r.password,
+      user: config.db.user, password: config.db.password,
       timezone: config.db.timezone, connectionLimit: config.db.poolLimit,
       namedPlaceholders: true, dateStrings: true, multipleStatements: false,
       supportBigNumbers: true, bigNumberStrings: true,
@@ -36,11 +34,7 @@ function pool(role) {
   };
 }
 
-export const readerPool = pool('reader');
-export const buildPool = pool('build');
-export const labPool = pool('lab');
-export const promPool = pool('prom');
-export const adminPool = pool('admin');
-export async function closePools() {
-  await Promise.all([readerPool, buildPool, labPool, promPool, adminPool].map(p => p.end()));
+export const dbPool = pool();
+export async function closePool() {
+  await dbPool.end();
 }

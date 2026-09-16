@@ -2,15 +2,16 @@
 
 ## 구성
 
-Express API → 역할별 mysql2 풀 → MySQL core/derived/lab.
+Express API → 단일 계정 mysql2 풀 → MySQL core/derived/lab.
 브라우저 ES 모듈은 로컬 Lightweight Charts 파일을 import map으로 로드합니다.
+설치/P0/빌드/API는 DB_USER와 DB_PASSWORD 한 쌍을 공유합니다.
 설정·SQL 식별자는 검증 후 매핑하며 사용자 입력은 SQL 파라미터로 바인딩합니다.
 
 ## API
 
 | 경로 | 기능 |
 | --- | --- |
-| GET /api/health?db=1 | 읽기 DB 연결 확인 |
+| GET /api/health?db=1 | 공통 DB 계정 연결 확인 |
 | GET/POST /api/strategies | 전략 목록/생성 |
 | GET /api/strategies/conditions | 조건 정의·기본값·자료 준비 여부 |
 | GET /api/strategies/:id/versions | 전략 버전 목록 |

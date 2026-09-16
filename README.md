@@ -24,13 +24,16 @@ npm install
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-.env에 읽기(MD), 빌드(BUILD), 실험(LAB) 계정 정보를 설정합니다.
-최초 설치 시에만 ADMIN_USER/ADMIN_PASSWORD에 스키마와 계정을 관리할 수 있는 계정을 지정합니다.
-웹 서버는 관리자 계정을 사용하지 않습니다. 기존 .env를 예시 파일로 덮어쓰지 마세요.
+.env에는 모든 작업에서 사용할 **DB_USER / DB_PASSWORD 한 쌍만** 설정합니다.
+DB_HOST/DB_PORT도 공통입니다. 스키마 설치, P0, 파생 빌드, 웹 조회와 연구 저장이
+모두 같은 계정과 연결 풀을 사용합니다. 기존 .env를 예시 파일로 덮어쓰지 마세요.
+이 계정에는 market_data 조회와 core/derived/lab의 설치·읽기·쓰기 권한이 필요합니다.
+이미 권한이 충분한 테스트 계정이면 별도 권한 설정은 필요 없습니다.
+권한 부여 예시는 sql/00_core/03_grants.sql에 있으며, 추가 역할 계정을 만들지 않습니다.
 
 ```powershell
 npm run db:setup
-npm run db:grants
+npm run db:check
 npm run p0
 ```
 
@@ -45,8 +48,11 @@ npm run dev
 
 기본 주소는 **http://127.0.0.1:5180**입니다. 일반 실행은 `npm start`입니다.
 스키마가 이미 준비되어 있으면 관리자 설치 단계는 생략할 수 있습니다.
-`db:grants`는 없는 사용자를 만들고 역할을 지정하지만 기존 사용자의 비밀번호는 바꾸지 않습니다.
-`ER_ACCESS_DENIED_ERROR`는 .env의 계정/비밀번호, DB_ACCOUNT_HOST 및 실제 MySQL 권한을 확인해야 합니다.
+`npm run db:check`는 실제 접속 계정을 표시하고 각 스키마 조회 결과를 구분해 출력합니다.
+`ER_ACCESS_DENIED_ERROR`는 공통 계정의 비밀번호/접속 호스트를 확인하고,
+`ER_TABLEACCESS_DENIED_ERROR`는 같은 계정의 대상 스키마 권한을 확인하세요.
+기존 MD_USER/MD_PASSWORD 설정도 한 쌍으로만 호환합니다. DB_USER가 있으면 DB_PASSWORD만 사용하며
+BUILD/LAB/PROM/ADMIN 계정 변수는 사용하지 않습니다.
 
 ## 사용 흐름
 
@@ -61,22 +67,23 @@ npm run dev
 
 | 명령 | 목적 | 계정 |
 | --- | --- | --- |
-| npm run db:setup | core/derived/lab 스키마와 기준 정의 설치 | ADMIN |
-| npm run db:grants | 계정 생성 및 MySQL 역할 부여 | ADMIN |
-| npm run p0 | 생존편향 진단과 data/p0-report.json 저장 | MD |
-| npm run build:derived -- --p0-reviewed | 지표와 후보·성과 테이블 재생성 | BUILD |
-| npm run universe | MINUTE_UNIVERSE_TOP_N개의 월말 유니버스 생성 | BUILD |
-| npm start / npm run dev | API와 웹 화면 | MD / LAB |
+| npm run db:setup | core/derived/lab 스키마와 기준 정의 설치 | 공통 DB_USER |
+| npm run db:check | 공통 계정 연결·스키마 조회 진단 | 공통 DB_USER |
+| npm run p0 | 생존편향 진단과 data/p0-report.json 저장 | 공통 DB_USER |
+| npm run build:derived -- --p0-reviewed | 지표와 후보·성과 테이블 재생성 | 공통 DB_USER |
+| npm run universe | MINUTE_UNIVERSE_TOP_N개의 월말 유니버스 생성 | 공통 DB_USER |
+| npm start / npm run dev | API와 웹 화면 | 공통 DB_USER |
 | npm test | 단위·HTTP 검사, 설정된 경우 DB 통합 검사 | 테스트 DB만 |
 
 `db:setup`, `p0`, `build:derived`, `universe`에 `-- --dry-run`을 붙이면 DB에 연결하지 않고 SQL 파일 읽기·문장 분할을 확인합니다.
 dry run은 DB 문법/권한 검증이 아닙니다.
 
-- market_data: 원천 데이터. 앱과 빌드 계정은 읽기 전용입니다.
-- srb_core: 기준 조건과 초기 설정. 웹 앱은 읽기 전용입니다.
-- srb_derived: 지표, 거래일 캘린더, 후보, 시점별 입력 자료. BUILD만 씁니다.
-- srb_lab: 전략·버전·가설·시도·스냅샷·검증 예산. LAB이 트랜잭션으로 씁니다.
-- PROM은 별도 승격용 INSERT 권한만 준비하며 웹 앱에서 사용하지 않습니다.
+- market_data: 원천 데이터. 애플리케이션 코드는 조회만 수행합니다.
+- srb_core: 기준 조건과 초기 설정.
+- srb_derived: 지표, 거래일 캘린더, 후보, 시점별 입력 자료.
+- srb_lab: 전략·버전·가설·시도·스냅샷·검증 예산.
+
+위 구분은 데이터 용도 구분입니다. 테스트 기간에는 계정/권한을 역할별로 나누지 않습니다.
 
 DB 이름은 MD_DATABASE/CORE_DATABASE/DERIVED_DATABASE/LAB_DATABASE로 변경할 수 있습니다.
 기존 core 연구 테이블을 삭제하거나 lab으로 자동 이관하지 않습니다.
@@ -103,7 +110,7 @@ SQL 파일은 sql/, 실행 래퍼는 scripts/*.mjs에 둡니다.
 
 `npm test`는 DB 없이도 실행합니다. MYSQL_TEST_URL이 없으면 MySQL 통합 테스트 하나가 명시적으로 skip됩니다.
 통합 테스트는 localhost의 **별도 테스트 MySQL 인스턴스**를 사용하며,
-고유한 srb_test_* 스키마·사용자를 만들고 종료 시 삭제합니다.
+한 테스트 계정으로 고유한 srb_test_* 스키마만 만들고 종료 시 삭제합니다.
 
 ```powershell
 $env:MYSQL_TEST_URL = 'mysql://test_admin:password@127.0.0.1:33307'
@@ -115,5 +122,5 @@ Remove-Item Env:MYSQL_TEST_URL, Env:BROWSER_TEST, Env:BROWSER_CHANNEL
 
 브라우저 검사는 설치된 Chrome을 사용합니다(Edge는 BROWSER_CHANNEL=msedge).
 스크린샷은 Git에서 제외된 artifacts/에 저장합니다.
-MySQL 9.7.1의 격리 인스턴스와 Chrome에서 SQL·실제 역할 권한·동시 요청·롤백·전체 화면 흐름을 검증했습니다.
+MySQL 9.7.1의 격리 인스턴스와 Chrome에서 SQL·단일 계정 연결·동시 요청·롤백·전체 화면 흐름을 검증했습니다.
 실제 운영 원천 데이터의 커버리지와 P0 결과는 별도로 확인해야 합니다.

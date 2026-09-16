@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { route, connection } from '../http.mjs';
 import { ledger } from '../guards.mjs';
-export default function ledgerRoutes({ readerPool }) {
+export default function ledgerRoutes({ dbPool }) {
   const router=Router();
-  router.get('/',route(async (_req,res)=>res.json(await connection(readerPool,async conn=>{
+  router.get('/',route(async (_req,res)=>res.json(await connection(dbPool,async conn=>{
     const summary=await ledger(conn);
     const [partitions]=await conn.query('SELECT * FROM srb_lab.data_partition ORDER BY date_from');
     const [trials]=await conn.query(`SELECT t.*,h.statement,h.verdict,h.pred_cut_pct,h.pred_pass_pct,

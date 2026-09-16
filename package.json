@@ -15,7 +15,7 @@
     "build:derived": "node scripts/build-derived.mjs",
     "universe": "node scripts/backfill-universe.mjs",
     "db:setup": "node scripts/setup-db.mjs",
-    "db:grants": "node scripts/grant-roles.mjs",
+    "db:check": "node scripts/check-db.mjs",
     "test:integration": "node --test tests/mysql.integration.test.mjs",
     "test": "node --test"
   },

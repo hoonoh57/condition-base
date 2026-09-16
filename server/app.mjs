@@ -14,7 +14,7 @@ export function createApp({ db = pools, settings = config } = {}) {
   app.disable('x-powered-by');
   app.use(express.json({ limit: '64kb' }));
   app.get('/api/health', route(async (req, res) => {
-    if (req.query.db === '1') await db.readerPool.query('SELECT 1');
+    if (req.query.db === '1') await db.dbPool.query('SELECT 1');
     res.json({ status: 'ok', databaseChecked: req.query.db === '1' });
   }));
   app.use('/api/strategies', strategies(db));

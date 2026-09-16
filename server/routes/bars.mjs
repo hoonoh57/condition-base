@@ -2,13 +2,13 @@ import { Router } from 'express';
 import { route, id, date, fail, transaction, options } from '../http.mjs';
 import { partitionFor, requireDerived, predicates, featureJoin } from '../stack.mjs';
 import { version, storedResult, loadRows } from '../research.mjs';
-export default function bars({ readerPool }) {
+export default function bars({ dbPool }) {
   const router=Router();
   router.get('/',route(async (req,res)=>{
     const instrumentId=id(req.query.instrumentId ?? req.query.code);
     const condDate=date(req.query.cond_date), versionId=id(req.query.versionId ?? req.query.version);
     const opts=options(req.query);
-    res.json(await transaction(readerPool,async conn=>{
+    res.json(await transaction(dbPool,async conn=>{
       const state=await requireDerived(conn);
       await version(conn,versionId);
       const partition=await partitionFor(conn,opts.part);

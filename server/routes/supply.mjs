@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { route, connection, id, date } from '../http.mjs';
 import { coverage } from '../catalog.mjs';
-export default function supply({ readerPool }) {
+export default function supply({ dbPool }) {
   const router=Router();
-  router.get('/',route(async (req,res)=>res.json(await connection(readerPool,async conn=>{
+  router.get('/',route(async (req,res)=>res.json(await connection(dbPool,async conn=>{
     const data=await coverage(conn);
     const [items]=await conn.query('SELECT * FROM srb_core.improvement_item ORDER BY item_id');
     let rows=[];

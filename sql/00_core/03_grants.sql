@@ -1,12 +1,7 @@
--- Administrator-run MySQL 8 roles. Users/passwords are provisioned separately.
--- Assign with GRANT 'srb_reader_role' TO 'actual_user'@'actual_host';
--- then SET DEFAULT ROLE 'srb_reader_role' TO 'actual_user'@'actual_host'.
-CREATE ROLE IF NOT EXISTS 'srb_reader_role','srb_build_role','srb_lab_role','srb_prom_role';
-GRANT SELECT ON market_data.* TO 'srb_reader_role','srb_build_role','srb_lab_role';
-GRANT SELECT ON srb_core.* TO 'srb_reader_role','srb_lab_role';
-GRANT SELECT ON srb_derived.* TO 'srb_reader_role','srb_lab_role';
-GRANT SELECT ON srb_lab.* TO 'srb_reader_role';
-GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,ALTER,DROP,INDEX,CREATE TEMPORARY TABLES
- ON srb_derived.* TO 'srb_build_role';
-GRANT SELECT,INSERT,UPDATE,DELETE ON srb_lab.* TO 'srb_lab_role';
-GRANT SELECT,INSERT ON srb_core.* TO 'srb_prom_role';
+-- Single test account. Run once using an account allowed to grant privileges.
+-- Replace srb_test/localhost with the DB_USER and MySQL account host in use.
+-- The account must already exist; no other role users are created.
+GRANT SELECT ON market_data.* TO 'srb_test'@'localhost';
+GRANT ALL PRIVILEGES ON srb_core.* TO 'srb_test'@'localhost';
+GRANT ALL PRIVILEGES ON srb_derived.* TO 'srb_test'@'localhost';
+GRANT ALL PRIVILEGES ON srb_lab.* TO 'srb_test'@'localhost';

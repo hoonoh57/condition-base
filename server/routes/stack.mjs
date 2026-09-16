@@ -3,15 +3,15 @@ import { route, id, number, options, transaction, fail } from '../http.mjs';
 import { browseStack, mutateStack, loadRows, storedResult } from '../research.mjs';
 import { partitionFor, predicates, featureJoin, requireDerived } from '../stack.mjs';
 
-export default function stack({ readerPool, labPool }, settings) {
+export default function stack({ dbPool }, settings) {
   const router = Router();
   router.get('/', route(async (req,res) => {
     const versionId=id(req.query.versionId);
-    res.json(await transaction(readerPool, conn => browseStack(conn,versionId,options(req.query))));
+    res.json(await transaction(dbPool, conn => browseStack(conn,versionId,options(req.query))));
   }));
   router.get('/candidates', route(async (req,res) => {
     const versionId=id(req.query.versionId), opts=options(req.query);
-    res.json(await transaction(readerPool, async conn => {
+    res.json(await transaction(dbPool, async conn => {
       const state=await requireDerived(conn);
       const measured = await browseStack(conn,versionId,opts);
       const partition=await partitionFor(conn,opts.part);
@@ -31,7 +31,7 @@ export default function stack({ readerPool, labPool }, settings) {
     }));
   }));
   router.get('/snapshot/:versionId', route(async (req,res) => {
-    const result=await transaction(readerPool,conn=>storedResult(conn,id(req.params.versionId)));
+    const result=await transaction(dbPool,conn=>storedResult(conn,id(req.params.versionId)));
     if (!result) fail(404,'MEASUREMENT_NOT_FOUND');
     res.json(result);
   }));
@@ -40,7 +40,7 @@ export default function stack({ readerPool, labPool }, settings) {
       const input={...req.body,versionId:id(req.body.versionId),hypId:id(req.body.hypId),action};
       if (action==='update') input.orderNo=number(req.body.orderNo,1,32,'orderNo',true);
       if (input.memo !== undefined && (typeof input.memo!=='string'||input.memo.length>255)) fail(400,'INVALID_MEMO');
-      res.status(201).json(await transaction(labPool,conn=>mutateStack(conn,input,settings.baseline)));
+      res.status(201).json(await transaction(dbPool,conn=>mutateStack(conn,input,settings.baseline)));
     }));
   }
   return router;

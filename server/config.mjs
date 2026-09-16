@@ -1,34 +1,20 @@
 import 'dotenv/config';
-
-function req(key) {
-  const v = process.env[key];
-  if (!v || !v.trim()) {
-    throw new Error(`[config] 필수 환경변수 누락: ${key} — .env.example 참고`);
-  }
-  return v.trim();
-}
+import { databaseCredentials } from './db-config.mjs';
 const opt = (k, d) => (process.env[k]?.trim() || d);
 const int = (k, d) => Number.parseInt(opt(k, String(d)), 10);
 const bool = (k, d = false) => opt(k, String(d)).toLowerCase() === 'true';
 
 export const config = {
   db: {
-    host: opt('MD_HOST', '127.0.0.1'),
-    port: int('MD_PORT', 3306),
+    host: opt('DB_HOST', opt('MD_HOST', '127.0.0.1')),
+    port: int('DB_PORT', int('MD_PORT', 3306)),
     timezone: opt('DB_TIMEZONE', '+09:00'),
     poolLimit: int('DB_POOL_LIMIT', 8),
-    accountHost: opt('DB_ACCOUNT_HOST', 'localhost'),
     marketData: opt('MD_DATABASE', 'market_data'),
     core: opt('CORE_DATABASE', 'srb_core'),
     derived: opt('DERIVED_DATABASE', 'srb_derived'),
     lab: opt('LAB_DATABASE', 'srb_lab'),
-    roles: {
-      reader: { user: req('MD_USER'),    password: req('MD_PASSWORD') },
-      build:  { user: opt('BUILD_USER'), password: opt('BUILD_PASSWORD') },
-      lab:    { user: opt('LAB_USER'),   password: opt('LAB_PASSWORD') },
-      prom:   { user: opt('PROM_USER'),  password: opt('PROM_PASSWORD') },
-      admin:  { user: opt('ADMIN_USER'), password: opt('ADMIN_PASSWORD') },
-    },
+    ...databaseCredentials(),
   },
   server: { port: int('PORT', 5180), host: opt('HOST', '127.0.0.1') },
   guards: { allowOosBrowse: bool('ALLOW_OOS_BROWSE', false) },
@@ -51,6 +37,6 @@ if (!Number.isInteger(config.data.minuteUniverseTopN) || config.data.minuteUnive
 // 비밀값이 로그·응답에 새지 않도록
 export function safeConfig() {
   const c = structuredClone(config);
-  for (const r of Object.values(c.db.roles)) r.password = r.password ? '***' : '';
+  c.db.password = c.db.password ? '***' : '';
   return c;
 }

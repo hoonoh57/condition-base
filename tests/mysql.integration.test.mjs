@@ -18,10 +18,7 @@ test('MySQL: derived SQL and full research workflow', { skip: !process.env.MYSQL
   const wrap=c=>({query:(sql,args)=>c.query(schemaSql(sql,names),args),
     beginTransaction:()=>c.beginTransaction(),commit:()=>c.commit(),rollback:()=>c.rollback(),release:()=>c.release()});
   const pool={query:(sql,args)=>native.query(schemaSql(sql,names),args),getConnection:async()=>wrap(await native.getConnection())};
-  const rolePools=[];
   t.after(async()=>{
-    for (const p of rolePools) await p.end();
-    for (const suffix of ['reader','lab','build']) await native.query("DROP USER IF EXISTS '"+prefix+'_'+suffix+"'@'localhost'");
     for (const name of Object.values(names)) {
       assert.match(name,/^srb_test_\d+_(market|core|derived|lab)$/);
       await native.query('DROP DATABASE IF EXISTS `'+name+'`');
@@ -89,27 +86,7 @@ test('MySQL: derived SQL and full research workflow', { skip: !process.env.MYSQL
   for(const [part,from,to,max] of [['IS',dates[0],dates[190],999],['OOS',dates[191],dates[230],2],['VAULT',dates[231],dates[259],1]])
     await pool.query('UPDATE srb_lab.data_partition SET date_from=?,date_to=?,max_unlocks=? WHERE part=?',[from,to,max,part]);
   const baseline={costModelKey:'NA_DAILY',stopDefKey:'NA_DAILY',fillRuleKey:'T1_OPEN',taxScheduleVer:'UNVERIFIED',severity:'WORST'};
-  const roles={};
-  // Exercise the shipped MySQL role DDL and parameterized account assignment syntax.
-  for (const statement of splitSql(await fs.readFile(new URL('../sql/00_core/03_grants.sql',import.meta.url),'utf8')))
-    await pool.query(statement);
-  for (const role of ['reader','lab','build']) {
-    const username=prefix+'_'+role;
-    await native.query("CREATE USER '"+username+"'@'localhost' IDENTIFIED BY 'fixture-only-password'");
-    await native.query('GRANT ? TO ?@?',['srb_'+role+'_role',username,'localhost']);
-    await native.query('SET DEFAULT ROLE ? TO ?@?',['srb_'+role+'_role',username,'localhost']);
-    const readSchemas=role==='build'?[names.marketData]:Object.values(names);
-    for (const schema of readSchemas) await native.query('GRANT SELECT ON `'+schema+"`.* TO '"+username+"'@'localhost'");
-    if(role==='lab') await native.query('GRANT INSERT,UPDATE,DELETE ON `'+names.lab+"`.* TO '"+username+"'@'localhost'");
-    if(role==='build') await native.query('GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,ALTER,DROP,INDEX,CREATE TEMPORARY TABLES ON `'+names.derived+"`.* TO '"+username+"'@'localhost'");
-    const p=mysql.createPool({host:url.hostname,port:Number(url.port),user:username,password:'fixture-only-password',dateStrings:true,decimalNumbers:true});
-    rolePools.push(p);
-    roles[role]={query:(sql,args)=>p.query(schemaSql(sql,names),args),getConnection:async()=>wrap(await p.getConnection())};
-  }
-  await assert.rejects(roles.reader.query('DELETE FROM market_data.korean_equity_daily'),{code:'ER_TABLEACCESS_DENIED_ERROR'});
-  await assert.rejects(roles.lab.query("UPDATE srb_core.condition_def SET label_ko='bad'"),{code:'ER_TABLEACCESS_DENIED_ERROR'});
-  await buildDerived(roles.build,{log(){}});
-  const server=createApp({db:{readerPool:roles.reader,labPool:roles.lab},settings:{baseline}}).listen(0,'127.0.0.1');
+  const server=createApp({db:{dbPool:pool},settings:{baseline}}).listen(0,'127.0.0.1');
   await once(server,'listening');
   t.after(()=>new Promise(resolve=>{server.close(resolve);server.closeAllConnections();}));
   const base='http://127.0.0.1:'+server.address().port;
