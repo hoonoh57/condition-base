@@ -1,0 +1,1 @@
+{"name":"srb-lab","version":"1.0.0","description":"SRB Lab Project","main":"server/index.mjs","scripts":{"install":"npm install --save @lightweight-charts/core @lightweight-charts/themes @types/node typescript ts-node","start":"ts-node server/index.mjs","test":"mocha"},"dependencies":{},"devDependencies":{}}

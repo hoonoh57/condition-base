@@ -1,0 +1,21 @@
+<!doctype html><meta charset="utf-8">
+<div id="hdr" class="hdr"></div>
+<div class="wrap">
+  <nav id="tree">
+    <div data-node="stack" class="on">조건식 (스택)</div>
+    <div data-node="backtest">백테스트</div>
+    <div data-node="history">연구이력</div>
+  </nav>
+  <main>
+    <div id="ctl">
+      MFE 창 <select id="win"><option>5<option>10<option selected>20<option>40</select>
+      임계 <input id="thr" type="range" min="0.02" max="0.40" step="0.01" value="0.08">
+      <span id="thrv">8%</span>
+      <span id="free">이 탐색은 시도 회계를 소모하지 않습니다</span>
+    </div>
+    <table id="stack"></table>
+    <button id="add">+ 조건 추가</button>
+    <div id="detail"><div id="chart"></div></div>
+  </main>
+</div>
+<script type="module" src="./stack.js"></script>
