@@ -1,4 +1,7 @@
 import { dbPool, closePool } from '../server/db.mjs';
+import { config } from '../server/config.mjs';
+
+console.log(`접속 대상: ${config.db.user}@${config.db.host}:${config.db.port}`);
 
 try {
   const [[identity]] = await dbPool.query('SELECT CURRENT_USER() account, VERSION() version');
@@ -16,5 +19,10 @@ try {
   console.log('모든 작업은 같은 계정입니다. 쓰기·DDL 권한은 db:setup/build 실행 시 확인됩니다.');
 } catch (error) {
   console.error(`MySQL 연결 실패: ${error.code ?? error.message}`);
+  if (error.code === 'ER_ACCESS_DENIED_ERROR') {
+    console.error('스키마 조회 전 로그인 단계에서 거부되었습니다.');
+    console.error('MySQL에 실제 로그인되는 계정을 .env의 DB_USER / DB_PASSWORD에 설정하세요.');
+    console.error('단일 계정 설정은 MySQL 사용자 생성이나 기존 비밀번호 변경을 수행하지 않습니다.');
+  }
   process.exitCode = 1;
 } finally { await closePool(); }
