@@ -1,21 +1,77 @@
-<!doctype html><meta charset="utf-8">
-<div id="hdr" class="hdr"></div>
-<div class="wrap">
-  <nav id="tree">
-    <div data-node="stack" class="on">조건식 (스택)</div>
-    <div data-node="backtest">백테스트</div>
-    <div data-node="history">연구이력</div>
-  </nav>
+<!doctype html>
+<html lang="ko">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>SRB Lab · 조건식 연구실</title>
+ <link rel="stylesheet" href="/style.css">
+ <script type="importmap">{"imports":{"lightweight-charts":"/vendor/lightweight-charts.mjs"}}</script>
+</head>
+<body>
+ <header class="top"><a class="brand" href="/"><span class="brand-mark">S</span> SRB <b>LAB</b></a>
+  <span class="eyebrow">CONDITION RESEARCH</span><span id="connection" class="status">연결 확인 중</span></header>
+ <div class="layout">
+  <aside><div class="aside-label">연구 공간</div>
+   <button class="nav on" data-tab="workspace">◫ <span>조건식 스택</span></button>
+   <button class="nav" data-tab="history">◷ <span>연구이력</span></button>
+   <button class="nav" data-tab="data">▤ <span>데이터 준비</span></button>
+   <div class="aside-note"><b>DAILY RESEARCH</b><p>조건 성립 D<br>앵커 T+1 시가</p><small>일봉은 MFE만 평가합니다.</small></div>
+  </aside>
   <main>
-    <div id="ctl">
-      MFE 창 <select id="win"><option>5<option>10<option selected>20<option>40</select>
-      임계 <input id="thr" type="range" min="0.02" max="0.40" step="0.01" value="0.08">
-      <span id="thrv">8%</span>
-      <span id="free">이 탐색은 시도 회계를 소모하지 않습니다</span>
+   <div id="message" role="status" aria-live="polite" hidden></div>
+   <section id="workspace" class="tab">
+    <div class="page-title"><div><div class="eyebrow">STRATEGY WORKSPACE</div><h1>조건식 연구실</h1>
+     <p>조건을 쌓고, 표본과 전방 움직임의 변화를 확인하세요.</p></div>
+     <button id="new-strategy" class="primary">+ 새 전략</button></div>
+    <div class="selection card">
+     <label>전략<select id="strategy"><option value="">전략을 선택하세요</option></select></label>
+     <label>버전<select id="version"><option value="">—</option></select></label>
+     <label>측정 구간<select id="part"><option value="IS">IS · 연구 구간</option><option value="OOS">OOS · 검증 구간</option><option value="VAULT">VAULT · 봉인 구간</option></select></label>
+     <span id="asof" class="muted"></span>
     </div>
-    <table id="stack"></table>
-    <button id="add">+ 조건 추가</button>
-    <div id="detail"><div id="chart"></div></div>
+    <div class="metrics">
+     <div class="card"><span>최종 생존 표본</span><strong id="metric-n">—</strong><small id="metric-day">일평균 —</small></div>
+     <div class="card"><span>MFE 통과율</span><strong id="metric-pass">—</strong><small id="metric-evaluated">측정 가능 표본 —</small></div>
+     <div class="card"><span>집행 가능률</span><strong id="metric-exec">—</strong><small>T+1 관측 · 시가 기준</small></div>
+     <div class="card"><span>누적 연구 시도</span><strong id="metric-trials">—</strong><small id="metric-budget">검증 예산 확인 중</small></div>
+    </div>
+    <div class="card stack-panel">
+     <div class="panel-head"><div><h2>조건 스택</h2><p id="stack-note">전략을 만들거나 선택하면 측정을 시작할 수 있습니다.</p></div>
+      <button id="add" class="primary" disabled>+ 조건 추가</button></div>
+     <div class="controls">
+      <label>MFE 창<select id="win"><option value="5">5 거래일</option><option value="10">10 거래일</option><option value="20" selected>20 거래일</option><option value="40">40 거래일</option></select></label>
+      <label class="range-label">임계값 <output id="thrv">8%</output><input id="thr" type="range" min=".02" max=".40" step=".01" value=".08"></label>
+      <span id="free" class="muted">IS 창·임계값 탐색은 회계 미소모</span>
+      <button id="refresh">새로고침</button><button id="measure">가설 등록 후 측정</button>
+     </div>
+     <div class="table-wrap"><table id="stack"><thead><tr><th>#</th><th>조건 / 설정</th><th>생존</th><th>감소율</th><th>일평균</th><th>MFE 통과</th><th>집행 가능</th><th>관리</th></tr></thead><tbody><tr><td colspan="8" class="empty">선택된 전략이 없습니다.</td></tr></tbody></table></div>
+     <div id="verdict" class="footnote"></div>
+    </div>
+    <div class="evidence-grid">
+     <section class="card"><div class="panel-head"><div><h2>근거 표본</h2><p>최종 조건을 통과한 최근 100건</p></div></div>
+      <div id="candidates" class="candidate-list"><p class="empty">측정 후 표본을 선택하세요.</p></div></section>
+     <section class="card chart-panel"><div class="panel-head"><div><h2 id="chart-title">가격과 측정 기준점</h2><p id="chart-note">표본을 선택하면 D와 T+1 앵커를 표시합니다.</p></div></div>
+      <div id="chart"><p class="empty">왼쪽 표본에서 근거를 확인하세요.</p></div>
+      <div class="footnote">MA60 · 볼린저 상단(20, 2σ) · 거래대금 | <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">Charts by TradingView</a></div></section>
+    </div>
+   </section>
+   <section id="history" class="tab" hidden><div class="page-title"><div><div class="eyebrow">RESEARCH LEDGER</div><h1>연구이력</h1><p>가설, 예측과 실측, 사용한 검증 구간을 함께 보관합니다.</p></div></div>
+    <div id="partitions" class="metrics"></div><div class="card table-wrap"><table id="trials"></table></div></section>
+   <section id="data" class="tab" hidden><div class="page-title"><div><div class="eyebrow">DATA READINESS</div><h1>데이터 준비</h1><p>현재 데이터 범위와 사용 가능한 조건을 확인하세요.</p></div></div>
+    <div id="coverage" class="card data-card"></div><div class="card table-wrap"><table id="availability"></table></div>
+    <h2 class="section-title">개선 항목</h2><div id="improvements" class="improvements"></div></section>
   </main>
-</div>
-<script type="module" src="./stack.js"></script>
+ </div>
+ <dialog id="create-dialog"><form id="create-form"><div class="dialog-head"><h2>새 전략</h2><button type="button" data-close aria-label="닫기">×</button></div>
+  <label>전략 이름<input name="name" maxlength="80" required placeholder="예: 볼린저 상단 돌파"></label>
+  <p class="muted">+10~15% 점화 앵커가 동결된 첫 버전을 만듭니다.</p><p class="form-error" role="alert"></p>
+  <div class="actions"><button type="button" data-close>취소</button><button class="primary">전략 만들기</button></div></form></dialog>
+ <dialog id="change-dialog"><form id="change-form"><div class="dialog-head"><h2 id="change-title">조건 추가</h2><button type="button" data-close aria-label="닫기">×</button></div>
+  <label id="condition-label">조건<select id="condition"></select></label><p id="change-description" class="muted"></p>
+  <div id="params" class="param-grid"></div><hr>
+  <h3>측정 전 가설</h3><label>가설<textarea id="hyp-statement" maxlength="255" rows="2" required placeholder="이 조건이 표본과 MFE 통과율에 어떤 영향을 줄 것으로 예상하나요?"></textarea></label>
+  <div class="param-grid"><label>예상 감소율 (%)<input id="pred-cut" type="number" min="0" max="100" step=".1" value="20" required></label>
+   <label>예상 MFE 통과율 (%)<input id="pred-pass" type="number" min="0" max="100" step=".1" value="40" required></label></div>
+  <p class="muted">새 버전으로 저장하고 연구 시도 1회를 기록합니다. OOS·VAULT는 해당 구간 예산도 1회 사용합니다.</p>
+  <p class="form-error" role="alert"></p><div class="actions"><button type="button" data-close>취소</button><button class="primary" id="change-submit">새 버전으로 측정</button></div></form></dialog>
+ <script type="module" src="/stack.js"></script>
+</body></html>

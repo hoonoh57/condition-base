@@ -1,1 +1,31 @@
-{"name":"srb-lab","version":"1.0.0","description":"SRB Lab Project","main":"server/index.mjs","scripts":{"install":"npm install --save @lightweight-charts/core @lightweight-charts/themes @types/node typescript ts-node","start":"ts-node server/index.mjs","test":"mocha"},"dependencies":{},"devDependencies":{}}
+{
+  "name": "condition-base",
+  "version": "0.1.0",
+  "private": true,
+  "description": "조건식 성능 측정 연구 인프라 (SRB)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "server/index.mjs",
+  "scripts": {
+    "dev": "node --watch server/index.mjs",
+    "start": "node server/index.mjs",
+    "p0": "node scripts/p0-check.mjs",
+    "build:derived": "node scripts/build-derived.mjs",
+    "universe": "node scripts/backfill-universe.mjs",
+    "db:setup": "node scripts/setup-db.mjs",
+    "db:grants": "node scripts/grant-roles.mjs",
+    "test:integration": "node --test tests/mysql.integration.test.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "lightweight-charts": "^5.2.1",
+    "mysql2": "^3.11.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}

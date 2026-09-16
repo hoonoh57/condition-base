@@ -1,42 +1,69 @@
-// 미래 정보 컬럼: 필터로 사용 시 즉시 예외
-const OUTCOME_COLS = new Set([
-  'anchor_date','anchor_open','executable','nonexec_reason',
-  'mfe_5','mfe_10','mfe_20','mfe_40'
-]);
+import { fail, number } from './http.mjs';
 
-const num = (v) => {
-  if (typeof v !== 'number' || !Number.isFinite(v)) throw new Error('bad param');
-  return v;
+const DEFINITIONS = {
+  IGNITE_10_15: { lo: [.10, .10], hi: [.15, .15] },
+  AMT20_MIN: { min_krw: [0, 1e15] },
+  AMT_RANK_TODAY: { top_n: [1, 10000, true], pool: ['MARKET'] },
+  MKTCAP_BAND: { lo: [0, 1e17], hi: [0, 1e17] },
+  MA60_XUP: { within: [0, 250, true] },
+  DISP60: { lo: [0, 1000], hi: [0, 1000] },
+  BB_UPPER_BREAK: { len: [20, 20, true], mult: [.1, 10], buf_atr: [0, 10] },
+  SQZ_PRE: { pct: [0, 100], look: [120, 120, true] },
+  HH20_BREAK: { len: [20, 20, true] },
+  POS20: { lo: [-100, 100], hi: [-100, 100] },
+  NOT_BLOWOFF: { max_ret: [0, 1] },
+  PRICE_BAND: { lo: [0, 1e9], hi: [0, 1e9] },
+  DEDUP_DAYS: { days: [1, 250, true] },
+  EXCL_HALT: { gap_days: [1, 250, true] },
+  EXCL_DELISTED: { tail_days: [0, 250, true] },
+  MFE_QUALITY: { win: [5, 40, true], thr: [0, 1] },
 };
-
-export const REGISTRY = {
-  IGNITE_10_15: (p) => ({ sql: 'f.ret1 BETWEEN ? AND ?', args: [num(p.lo), num(p.hi)] }),
-  AMT20_MIN:    (p) => ({ sql: 'f.amt20 >= ?',            args: [num(p.min_krw)] }),
-  PRICE_BAND:   (p) => ({ sql: 'f.close BETWEEN ? AND ?', args: [num(p.lo), num(p.hi)] }),
-  DISP60:       (p) => ({ sql: 'f.disp60 BETWEEN ? AND ?',args: [num(p.lo), num(p.hi)] }),
-  MA60_XUP:     (p) => ({ sql: 'f.ma60_xup_age IS NOT NULL AND f.ma60_xup_age <= ?',
-                          args: [num(p.within)] }),
-  BB_UPPER_BREAK:(p)=> ({ sql: 'f.bb_break = 1', args: [] }),
-  HH20_BREAK:   ()  => ({ sql: 'f.hh20_break = 1', args: [] }),
-  SQZ_PRE:      (p) => ({ sql: 'f.bbw_pct_prev <= ?',     args: [num(p.pct)] }),
-  POS20:        (p) => ({ sql: 'f.pos20 BETWEEN ? AND ?', args: [num(p.lo), num(p.hi)] }),
-  NOT_BLOWOFF:  (p) => ({ sql: 'f.ret1 <= ?',             args: [num(p.max_ret)] }),
-  AMT_RANK_TODAY:(p)=> ({ sql: 'f.amt_rank_mkt <= ?',     args: [num(p.top_n)] }),
-  MKTCAP_BAND:  (p) => ({ sql: 'f.mktcap_krw BETWEEN ? AND ?',
-                          args: [num(p.lo), num(p.hi)] }),
-  EXCL_HALT:    ()  => ({ sql: 'f.excl_halt = 0', args: [] }),
-  EXCL_DELISTED:()  => ({ sql: 'f.excl_delisted = 0', args: [] }),
-  // QUALITY: 컷을 만들지 않음 → 술어를 반환하지 않는다
-  MFE_QUALITY:  ()  => null,
-};
-
-export function buildPredicate(condKey, params) {
-  const fn = REGISTRY[condKey];
-  if (!fn) throw new Error(`unknown cond_key: ${condKey}`);
-  const frag = fn(params ?? {});
-  if (!frag) return null;
-  for (const c of OUTCOME_COLS) {
-    if (frag.sql.includes(c)) throw new Error(`LOOKAHEAD_GUARD: ${condKey} touches ${c}`);
+export function validateParams(key, params) {
+  if (!Object.hasOwn(DEFINITIONS, key)) fail(422, 'CONDITION_UNAVAILABLE', key);
+  if (!params || Array.isArray(params) || typeof params !== 'object') fail(400, 'INVALID_PARAMS');
+  const spec = DEFINITIONS[key], normalized = {};
+  for (const name of Object.keys(params)) if (!Object.hasOwn(spec, name)) fail(400, 'UNKNOWN_PARAM', name);
+  for (const [name, rule] of Object.entries(spec)) {
+    if (typeof rule[0] === 'string') {
+      if (!rule.includes(params[name])) fail(400, 'INVALID_PARAM', name);
+      normalized[name] = params[name];
+    } else {
+      if (typeof params[name] !== 'number') fail(400, 'INVALID_PARAM', name);
+      normalized[name] = number(params[name], ...rule.slice(0, 2), name, rule[2]);
+    }
   }
-  return frag;
+  if ('lo' in normalized && normalized.lo > normalized.hi) fail(400, 'INVALID_RANGE');
+  if (key === 'MFE_QUALITY' && ![5,10,20,40].includes(normalized.win)) fail(400, 'INVALID_MFE_WINDOW');
+  return normalized;
+}
+export const REGISTRY = {
+  IGNITE_10_15: p => ({ sql: 'f.ret1 BETWEEN ? AND ?', args: [p.lo, p.hi] }),
+  AMT20_MIN: p => ({ sql: 'f.amt20 >= ?', args: [p.min_krw] }),
+  PRICE_BAND: p => ({ sql: 'f.close BETWEEN ? AND ?', args: [p.lo, p.hi] }),
+  DISP60: p => ({ sql: 'f.disp60 BETWEEN ? AND ?', args: [p.lo, p.hi] }),
+  MA60_XUP: p => ({ sql: 'f.ma60_xup_age <= ?', args: [p.within] }),
+  BB_UPPER_BREAK: p => ({ sql: 'f.close > i.ma20 + ? * i.sd20 + ? * i.atr20', args: [p.mult, p.buf_atr] }),
+  HH20_BREAK: () => ({ sql: 'f.hh20_break = 1', args: [] }),
+  SQZ_PRE: p => ({ sql: 'f.bbw_pct_prev <= ?', args: [p.pct] }),
+  POS20: p => ({ sql: 'f.pos20 BETWEEN ? AND ?', args: [p.lo, p.hi] }),
+  NOT_BLOWOFF: p => ({ sql: 'f.ret1 <= ?', args: [p.max_ret] }),
+  AMT_RANK_TODAY: p => ({ sql: 'f.amt_rank_mkt <= ?', args: [p.top_n] }),
+  MKTCAP_BAND: p => ({ sql: 'f.mktcap_krw BETWEEN ? AND ?', args: [p.lo, p.hi] }),
+  DEDUP_DAYS: p => ({ sql: '(f.days_since_ignite IS NULL OR f.days_since_ignite >= ?)', args: [p.days] }),
+  EXCL_HALT: p => ({ sql: 'f.halt_gap_days < ? AND f.excl_halt = 0', args: [p.gap_days] }),
+  EXCL_DELISTED: p => ({ sql: '(f.delisted_age_days IS NULL OR f.delisted_age_days > ?) AND f.excl_delisted = 0', args: [p.tail_days] }),
+  MFE_QUALITY: () => null,
+};
+export function buildPredicate(key, params) {
+  const normalized = validateParams(key, params);
+  return REGISTRY[key](normalized);
+}
+export function availability(def, coverage) {
+  if (!Object.hasOwn(REGISTRY, def.cond_key)) return { available: false, reason: '복원 규칙/원천 데이터 미확정' };
+  if (!coverage.ready) return { available: false, reason: '파생 데이터 빌드 필요' };
+  if (def.cond_key === 'MKTCAP_BAND' && !coverage.sharesComplete)
+    return { available: false, reason: '후보 전체의 시점별 상장주식수 필요' };
+  if (def.cond_key === 'EXCL_DELISTED' && !coverage.statusComplete)
+    return { available: false, reason: '후보 전체의 시점별 상장상태 필요' };
+  return { available: true, reason: null };
 }

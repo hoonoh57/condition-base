@@ -1,5 +1,5 @@
 USE srb_core;
-INSERT INTO condition_def
+INSERT IGNORE INTO condition_def
 (cond_key,tf,slot,label_ko,role,param_schema,data_ready,reconstructible,note) VALUES
 ('IGNITE_10_15','D','A','전일비 +10~15% 점화','FILTER',
  '{"lo":0.10,"hi":0.15}',1,1,'앵커 정의(동결)'),

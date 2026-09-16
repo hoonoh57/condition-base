@@ -115,7 +115,7 @@ INSERT IGNORE INTO data_partition VALUES
 
 CREATE TABLE IF NOT EXISTS improvement_item (
   item_id INT AUTO_INCREMENT PRIMARY KEY,
-  title VARCHAR(160) NOT NULL,
+  title VARCHAR(160) NOT NULL UNIQUE,
   current_state_assumption VARCHAR(255) NOT NULL,
   expected_effect VARCHAR(160),
   acquisition_cost ENUM('LOW','MID','HIGH') NOT NULL,
@@ -124,10 +124,12 @@ CREATE TABLE IF NOT EXISTS improvement_item (
   resolved_at TIMESTAMP NULL
 ) ENGINE=InnoDB;
 
-INSERT INTO improvement_item (title,current_state_assumption,expected_effect,acquisition_cost,blocks) VALUES
- ('외국인·기관 순매수','수급 데이터 없이 측정됨','점화 지속성 판별','MID','슬롯A 품질'),
- ('급등 원인 분류(실적/테마)','원인 무구분으로 혼재 측정','이벤트 순도 상승','HIGH','슬롯A'),
- ('CB/유상증자 대기물량','오버행 무시된 상태로 측정','상방 여유 과대평가 보정','MID','슬롯A'),
- ('투자주의(소수계좌) 배제','투자주의 종목 포함된 채 측정','집행 가능성 보정','HIGH','배제'),
- ('일자별 상장주식수','시가총액 조건 사용 불가','MKTCAP_BAND 활성화','LOW','MKTCAP_BAND'),
- ('폐지종목 커버리지','생존편향 미확인, 낙관 방향 가능','전 성과 하향 보정','MID','전체');
+INSERT INTO improvement_item (title,current_state_assumption,expected_effect,acquisition_cost,blocks)
+SELECT seed.title,seed.assumption,seed.effect,seed.cost,seed.blocks FROM (
+ SELECT '외국인·기관 순매수' title,'수급 데이터 없이 측정됨' assumption,'점화 지속성 판별' effect,'MID' cost,'슬롯A 품질' blocks
+ UNION ALL SELECT '급등 원인 분류(실적/테마)','원인 무구분으로 혼재 측정','이벤트 순도 상승','HIGH','슬롯A'
+ UNION ALL SELECT 'CB/유상증자 대기물량','오버행 무시된 상태로 측정','상방 여유 과대평가 보정','MID','슬롯A'
+ UNION ALL SELECT '투자주의(소수계좌) 배제','투자주의 종목 포함된 채 측정','집행 가능성 보정','HIGH','배제'
+ UNION ALL SELECT '일자별 상장주식수','시가총액 조건 사용 불가','MKTCAP_BAND 활성화','LOW','MKTCAP_BAND'
+ UNION ALL SELECT '폐지종목 커버리지','생존편향 미확인, 낙관 방향 가능','전 성과 하향 보정','MID','전체'
+) seed WHERE NOT EXISTS (SELECT 1 FROM improvement_item existing WHERE existing.title=seed.title);

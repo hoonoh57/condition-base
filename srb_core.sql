@@ -1,1 +1,0 @@
-CREATE SCHEMA srb_core;

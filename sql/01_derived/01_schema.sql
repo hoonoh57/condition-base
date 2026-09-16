@@ -41,12 +41,21 @@ CREATE TABLE IF NOT EXISTS d_feat (
   days_since_ignite SMALLINT, ignite_ret DECIMAL(10,6),
   excl_halt TINYINT(1), excl_delisted TINYINT(1),
   mktcap_krw BIGINT UNSIGNED NULL,
+  halt_gap_days INT NULL,
+  delisted_age_days INT NULL,
+  status_known TINYINT(1) NOT NULL DEFAULT 0,
   -- OUTCOME 영역 (필터 사용 금지)
   anchor_date DATE NULL, anchor_open BIGINT UNSIGNED NULL,
   executable TINYINT(1) NOT NULL DEFAULT 0,
   nonexec_reason ENUM('NONE','LIMIT_UP_OPEN','HALTED','NO_BAR') NOT NULL DEFAULT 'NONE',
   mfe_5 DECIMAL(8,4), mfe_10 DECIMAL(8,4),
   mfe_20 DECIMAL(8,4), mfe_40 DECIMAL(8,4),
+  mfe_end_5 DATE NULL, mfe_end_10 DATE NULL,
+  mfe_end_20 DATE NULL, mfe_end_40 DATE NULL,
   PRIMARY KEY (instrument_id, cond_date),
   KEY ix_cond_date (cond_date)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS trading_calendar (
+  trading_date DATE PRIMARY KEY, session_no INT NOT NULL UNIQUE
 ) ENGINE=InnoDB;

@@ -17,14 +17,17 @@ export const config = {
     port: int('MD_PORT', 3306),
     timezone: opt('DB_TIMEZONE', '+09:00'),
     poolLimit: int('DB_POOL_LIMIT', 8),
+    accountHost: opt('DB_ACCOUNT_HOST', 'localhost'),
     marketData: opt('MD_DATABASE', 'market_data'),
     core: opt('CORE_DATABASE', 'srb_core'),
     derived: opt('DERIVED_DATABASE', 'srb_derived'),
+    lab: opt('LAB_DATABASE', 'srb_lab'),
     roles: {
       reader: { user: req('MD_USER'),    password: req('MD_PASSWORD') },
       build:  { user: opt('BUILD_USER'), password: opt('BUILD_PASSWORD') },
       lab:    { user: opt('LAB_USER'),   password: opt('LAB_PASSWORD') },
       prom:   { user: opt('PROM_USER'),  password: opt('PROM_PASSWORD') },
+      admin:  { user: opt('ADMIN_USER'), password: opt('ADMIN_PASSWORD') },
     },
   },
   server: { port: int('PORT', 5180), host: opt('HOST', '127.0.0.1') },
@@ -38,6 +41,12 @@ export const config = {
   },
   data: { minuteUniverseTopN: int('MINUTE_UNIVERSE_TOP_N', 700) },
 };
+
+for (const name of ['marketData', 'core', 'derived', 'lab']) {
+  if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(config.db[name])) throw new Error(`Invalid DB name: ${name}`);
+}
+if (!Number.isInteger(config.data.minuteUniverseTopN) || config.data.minuteUniverseTopN < 1
+    || config.data.minuteUniverseTopN > 10000) throw new Error('Invalid MINUTE_UNIVERSE_TOP_N');
 
 // 비밀값이 로그·응답에 새지 않도록
 export function safeConfig() {
