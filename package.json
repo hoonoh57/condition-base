@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "node --watch server/index.mjs",
     "start": "node server/index.mjs",
+    "test": "node --test",
     "p0": "node scripts/p0-check.mjs",
     "build:derived": "node scripts/build-derived.mjs"
   },
