@@ -19,8 +19,12 @@ export default function bars({ dbPool }) {
         if (state.build_id!==saved.buildId) fail(409,'MEASUREMENT_DATA_CHANGED');
       }
       const filter=predicates(await loadRows(conn,versionId),partition);
-      const [[feature]]=await conn.query(`SELECT f.anchor_date,f.anchor_open ${featureJoin}
+      const [[feature]]=await conn.query(`SELECT f.anchor_date,f.anchor_open,
+        f.mfe_${opts.mfeWin} mfe, f.mfe_end_${opts.mfeWin} mfe_end,
+        p.mfe20_day, p.ret20 ${featureJoin('d_feat')}
+        LEFT JOIN srb_derived.d_path p ON p.instrument_id=f.instrument_id AND p.cond_date=f.cond_date
         WHERE f.instrument_id=? AND f.cond_date=? AND ${filter.where}`,[instrumentId,condDate,...filter.args]);
+
       if (!feature) fail(404,'CANDIDATE_NOT_FOUND');
       const [rows]=await conn.query(`SELECT d.trading_date time,d.open,d.high,d.low,d.close,d.amount,
         i.ma60,i.ma20+2*i.sd20 bb_up FROM market_data.korean_equity_daily d
@@ -30,8 +34,13 @@ export default function bars({ dbPool }) {
         [instrumentId,partition.date_from,condDate,partition.date_to,condDate]);
       const line=key=>rows.filter(r=>r[key]!=null).map(r=>({time:r.time,value:Number(r[key])}));
       const visible=feature.anchor_date&&feature.anchor_date<=partition.date_to;
+      const endVisible=feature.mfe_end&&feature.mfe_end<=partition.date_to;
       return {instrumentId,cond_date:condDate,anchor_date:visible?feature.anchor_date:null,
-        anchor_open:visible?Number(feature.anchor_open):null,
+        anchor_open:visible&&feature.anchor_open!=null?Number(feature.anchor_open):null,
+        mfe:endVisible&&feature.mfe!=null?Number(feature.mfe):null,
+        mfe_end:endVisible?feature.mfe_end:null,
+        mfe_day:endVisible&&opts.mfeWin===20?feature.mfe20_day:null,
+        ret_end:endVisible&&opts.mfeWin===20&&feature.ret20!=null?Number(feature.ret20):null,
         candles:rows.map(r=>({time:r.time,open:Number(r.open),high:Number(r.high),low:Number(r.low),close:Number(r.close)})),
         ma60:line('ma60'),bb_up:line('bb_up'),volume:line('amount')};
     }));
