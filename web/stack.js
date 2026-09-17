@@ -13,29 +13,39 @@ function error(err){message(err.message);}
 function opts(){return{part:$('#part').value,mfeWin:Number($('#win').value),mfeThr:Number($('#thr').value)};}
 function query(){return new URLSearchParams({versionId:state.versionId,...opts()});}
 function locked(yes){for(const id of ['add','measure','refresh']) $('#'+id).disabled=yes;}
+
 function resetMetrics(){
  for(const key of ['n','pass','exec']) $('#metric-'+key).textContent='—';
- $('#metric-day').textContent='일평균 —';$('#metric-evaluated').textContent='측정 가능 표본 —';
+ $('#metric-day').textContent='일평균 —';
+ $('#metric-lift').textContent='기준 대비 —';
+ $('#metric-evaluated').textContent='측정 가능 표본 —';
  $('#chart').hidden=true;$('#chart-title').textContent='가격과 측정 기준점';
  $('#chart-note').textContent='현재 표본을 선택해 근거를 확인하세요.';
 }
+
+
 function render(result){
  state.rows=result.rows;
+ const liftClass=v=>v==null?'':v>=1.2?'good':v<1?'bad':'flat';
+ const liftText=v=>v==null?'—':Number(v).toFixed(2)+'배';
  const tbody=$('#stack tbody');
  tbody.innerHTML=result.rows.length?result.rows.map(r=>'<tr class="'+(r.enabled?'':'off')+'"><td>'+r.order_no+'</td><td>'+esc(r.label_ko??r.cond_key)+(r.frozen?'<span class="badge">동결</span>':'')+
-  '<small>'+esc(Object.entries(r.params).map(([k,v])=>(paramLabels[k]??k)+' '+v).join(' · '))+'</small></td><td>'+fmt(r.n_survive)+'</td><td>'+(r.is_quality?'컷 없음':pct(r.cut_pct))+'</td><td>'+(r.per_day==null?'—':Number(r.per_day).toFixed(2))+'</td><td>'+pct(r.mfe_pass_pct)+'</td><td>'+pct(r.exec_pct)+'</td><td>'+
-  (r.frozen?'<span class="muted">앵커</span>':'<button data-edit="'+r.order_no+'">설정</button><button data-toggle="'+r.order_no+'">'+(r.enabled?'OFF':'ON')+'</button><button aria-label="위로 이동" data-up="'+r.order_no+'" '+(r.order_no<=2?'disabled':'')+'>↑</button><button aria-label="아래로 이동" data-down="'+r.order_no+'" '+(r.order_no===result.rows.length?'disabled':'')+'>↓</button>')+'</td></tr>').join(''):'<tr><td colspan="8" class="empty">조건을 추가하세요.</td></tr>';
+  '<small>'+esc(Object.entries(r.params).map(([k,v])=>(paramLabels[k]??k)+' '+v).join(' · '))+'</small></td><td>'+fmt(r.n_survive)+'</td><td>'+(r.is_quality?'컷 없음':pct(r.cut_pct))+'</td><td>'+(r.per_day==null?'—':Number(r.per_day).toFixed(2))+'</td><td>'+pct(r.mfe_pass_pct)+'</td><td class="base">'+pct(r.base_pass_pct)+'</td><td class="'+liftClass(r.lift)+'">'+liftText(r.lift)+'</td><td>'+pct(r.exec_pct)+'</td><td>'+
+  (r.frozen?'<span class="muted">앵커</span>':'<button data-edit="'+r.order_no+'">설정</button><button data-toggle="'+r.order_no+'">'+(r.enabled?'OFF':'ON')+'</button><button aria-label="위로 이동" data-up="'+r.order_no+'" '+(r.order_no<=2?'disabled':'')+'>↑</button><button aria-label="아래로 이동" data-down="'+r.order_no+'" '+(r.order_no===result.rows.length?'disabled':'')+'>↓</button>')+'</td></tr>').join(''):'<tr><td colspan="10" class="empty">조건을 추가하세요.</td></tr>';
  const final=result.rows.filter(r=>r.enabled).at(-1);
  $('#metric-n').textContent=fmt(final?.n_survive);
  $('#metric-day').textContent='일평균 '+(final?.per_day==null?'—':Number(final.per_day).toFixed(2));
  $('#metric-pass').textContent=pct(final?.mfe_pass_pct);
  $('#metric-exec').textContent=pct(final?.exec_pct);
- $('#metric-evaluated').textContent='측정 가능 표본 '+fmt(final?.n_evaluated);
+ $('#metric-lift').textContent=final?.lift==null?'기준 대비 —':'기준 '+pct(final.base_pass_pct)+' · '+liftText(final.lift);
+ $('#metric-evaluated').textContent='측정 가능 표본 '+fmt(final?.n_evaluated)+' / 기준 '+fmt(final?.base_n);
  $('#asof').textContent='데이터 기준 '+(result.dataAsOf??'—');
  $('#stack-note').textContent=result.part+' · '+(result.stored?'저장된 측정':'현재 데이터 탐색')+' · '+(result.dateFrom??'')+' ~ '+(result.dateTo??'');
  $('#verdict').textContent=result.hypothesis?'가설 '+result.hypothesis.verdict+' · 예상 감소 '+pct(result.hypothesis.predictedCut)+' / 실측 '+pct(result.hypothesis.measuredCut)+' · 예상 통과 '+pct(result.hypothesis.predictedPass)+' / 실측 '+pct(result.hypothesis.measuredPass):
-  'MFE는 전방 기간이 완전하고 해당 구간 안에 있는 표본만 평가합니다. 미측정은 —로 표시합니다.';
+  'MFE는 전방 기간이 완전하고 해당 구간 안에 있는 표본만 평가합니다. 미측정은 —로 표시합니다. 기준은 점화 조건을 뺀 동일 필터의 비점화 표본입니다.';
 }
+
+
 async function loadCandidates(){
  const token=state.refreshId;
  const data=await api('/api/stack/candidates?'+query());

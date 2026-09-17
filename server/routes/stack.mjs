@@ -20,7 +20,7 @@ export default function stack({ dbPool }, settings) {
         CASE WHEN f.anchor_date<=? THEN f.anchor_date END anchor_date,
         CASE WHEN f.anchor_date<=? THEN f.executable END executable,
         CASE WHEN f.mfe_end_${opts.mfeWin}<=? THEN f.mfe_${opts.mfeWin} END mfe
-        ${featureJoin} WHERE ${filter.where} ORDER BY f.cond_date DESC,f.instrument_id LIMIT 100`,
+        ${featureJoin('d_feat')} WHERE ${filter.where} ORDER BY f.cond_date DESC,f.instrument_id LIMIT 100`,
         [partition.date_to,partition.date_to,partition.date_to,...filter.args]);
       if (opts.part !== 'IS') {
         // Rebuilt data cannot be browsed as though it were the old paid measurement.

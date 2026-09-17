@@ -7,3 +7,8 @@
 @media(max-width:780px){.top{padding:0 16px;gap:15px}.top .eyebrow{display:none}.layout{display:block}aside{padding:10px;flex-direction:row;border-bottom:1px solid var(--line)}.aside-label,.aside-note{display:none}.nav{flex:1;justify-content:center;padding:10px 8px;font-size:12px}main{padding:22px 14px}.page-title{align-items:flex-start;gap:10px}h1{font-size:24px}.page-title p{font-size:11px}.page-title button{font-size:11px}.metrics{grid-template-columns:repeat(2,1fr);gap:10px}.selection{gap:12px;padding:16px}.selection label,.selection label:first-child{min-width:0;flex:1}.selection label:first-child{flex-basis:100%}.evidence-grid{grid-template-columns:1fr}.candidate-list{height:190px}.improvements{grid-template-columns:1fr}.panel-head{padding:18px}.controls{padding:13px 18px}#chart{height:300px}}
 
 .panel-head{gap:16px}.panel-head>div{min-width:0}.panel-head p{overflow-wrap:anywhere}.panel-head>button{flex-shrink:0}@media(max-width:780px){.controls .muted{flex:0 0 100%;order:3}.selection .muted{flex-basis:100%}.panel-head{align-items:flex-start}}
+
+#stack td.good{color:#0a7c3f;font-weight:600}
+#stack td.bad{color:#b91c1c;font-weight:600}
+#stack td.flat{color:#6b7280}
+#stack td.base{color:#6b7280}

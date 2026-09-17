@@ -30,7 +30,7 @@
     </div>
     <div class="metrics">
      <div class="card"><span>최종 생존 표본</span><strong id="metric-n">—</strong><small id="metric-day">일평균 —</small></div>
-     <div class="card"><span>MFE 통과율</span><strong id="metric-pass">—</strong><small id="metric-evaluated">측정 가능 표본 —</small></div>
+     <div class="card"><span>MFE 통과율</span><strong id="metric-pass">—</strong><small id="metric-lift">기준 대비 —</small><small id="metric-evaluated">측정 가능 표본 —</small></div>
      <div class="card"><span>집행 가능률</span><strong id="metric-exec">—</strong><small>T+1 관측 · 시가 기준</small></div>
      <div class="card"><span>누적 연구 시도</span><strong id="metric-trials">—</strong><small id="metric-budget">검증 예산 확인 중</small></div>
     </div>
@@ -43,7 +43,8 @@
       <span id="free" class="muted">IS 창·임계값 탐색은 회계 미소모</span>
       <button id="refresh">새로고침</button><button id="measure">가설 등록 후 측정</button>
      </div>
-     <div class="table-wrap"><table id="stack"><thead><tr><th>#</th><th>조건 / 설정</th><th>생존</th><th>감소율</th><th>일평균</th><th>MFE 통과</th><th>집행 가능</th><th>관리</th></tr></thead><tbody><tr><td colspan="8" class="empty">선택된 전략이 없습니다.</td></tr></tbody></table></div>
+     <div class="table-wrap"><table id="stack"><thead><tr><th>#</th><th>조건 / 설정</th><th>생존</th><th>감소율</th><th>일평균</th><th>MFE 통과</th><th>기준</th><th>리프트</th><th>집행 가능</th>
+<th>관리</th></tr></thead><tbody><tr><td colspan="10" class="empty">선택된 전략이 없습니다.</td></tr></tbody></table></div>
      <div id="verdict" class="footnote"></div>
     </div>
     <div class="evidence-grid">
